@@ -1,48 +1,47 @@
-pipeline { 
-  agent any 
+pipeline {
+  agent any
 
-  environment {
-    SONAR_SCANNER_HOME = tool 'SonarQubeScanner'
-  }
-
-  stages { 
-    stage('Checkout') { 
-      steps { 
-        git branch: 'main', url: 'https://github.com/EuphosiouX/8.2CDevSecOps.git' 
-      } 
-    } 
-
-    stage('Install Dependencies') { 
-      steps { 
-        bat 'npm install' 
-      } 
-    }
-
-    stage('Run Tests') { 
-      steps { 
-        sh 'npm test || exit /b 0' // Allows pipeline to continue despite test failures 
-      } 
-    } 
-
-    stage('Generate Coverage Report') { 
-      steps { 
-        // Ensure coverage report exists 
-        sh 'npm run coverage || exit /b 0' 
-      } 
-    } 
-
-    stage('NPM Audit (Security Scan)') { 
-      steps { 
-        sh 'npm audit || exit /b 0' // This will show known CVEs in the output 
-      } 
-    }
-
-    stage('Code Quality Check') {
+  stages {
+    stage('Checkout') {
       steps {
+        git branch: 'main', url: 'https://github.com/your_github_username/8.2CDevSecOps.git'
+      }
+    }
+
+    stage('Install Dependencies') {
+      steps {
+        bat 'npm install'
+      }
+    }
+
+    stage('Run Tests') {
+      steps {
+        bat 'npm test || exit /b 0' // Allows pipeline to continue despite test failures
+      }
+    }
+
+    stage('Generate Coverage Report') {
+      steps {
+        bat 'npm run coverage || exit /b 0'
+      }
+    }
+
+    stage('NPM Audit (Security Scan)') {
+      steps {
+        bat 'npm audit || exit /b 0'
+      }
+    }
+
+    stage('SonarCloud Analysis') {
+    steps {
         withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-          bat "${SONAR_SCANNER_HOME}/bin/sonar-scanner"
+        bat '''
+            curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-windows.zip
+            powershell -Command "Expand-Archive -Path sonar-scanner.zip -DestinationPath sonar-scanner"
+            sonar-scanner\\sonar-scanner-5.0.1.3006-windows\\bin\\sonar-scanner.bat -Dsonar.login=%SONAR_TOKEN%
+        '''
         }
       }
     }
-  } 
+  }
 }
